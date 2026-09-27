@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+//  VENOM SERVICES — DATABASE SCHEMA
+// ─────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  username      String   @unique
+  email         String   @unique
+  passwordHash  String
+  role          String   @default("USER") // OWNER | ADMIN | USER
+  ramMb         Int      @default(4096)   // 4GB RAM quota (hosting)
+  diskMb        Int      @default(51200)  // 50GB disk quota (hosting)
+  projectLimit  Int      @default(1)      // 1 project only for normal users
+  banned        Boolean  @default(false)
+  emailVerified Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  projects       HostingProject[]
+  chatMessages   ChatMessage[]
+}
+
+model HostingProject {
+  id        String   @id @default(cuid())
+  ownerId   String
+  name      String   @unique // sanitized folder name
+  language  String   // python | node
+  entryFile String   @default("main.py")
+  status    String   @default("stopped") // running | stopped | crashed
+  ramMb     Int      @default(0)  // live usage snapshot
+  diskMb    Float    @default(0)  // live usage snapshot
+  port      Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+model ChatMessage {
+  id       String   @id @default(cuid())
+  room     String   // "general" | room name | "dm:UserA|UserB" (sorted)
+  username String?
+  role     String   @default("USER")
+  content  String
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [username], references: [username], onDelete: SetNull)
+
+  @@index([room, createdAt])
+}
+
+model BreachCache {
+  id        String   @id @default(cuid())
+  kind      String   // email | password
+  queryKey  String   // lowercase email or sha1-prefix+suffix hash
+  result    String   // JSON string
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@unique([kind, queryKey])
+}
+
+model ServiceConfig {
+  key     String  @id // leak | xng | mega | hosting | chat | siteTitle | announcement
+  enabled Boolean @default(true)
+  value   String  @default("")
+}
+
+model LogEntry {
+  id        String   @id @default(cuid())
+  level     String   @default("info") // info | warn | error | security
+  source    String   @default("system")
+  message   String
+  meta      String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model ResetCode {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model EmailVerification {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}

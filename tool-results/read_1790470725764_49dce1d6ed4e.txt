@@ -1,0 +1,1062 @@
+     1→#!/usr/bin/env python3
+     2→# -*- coding: utf-8 -*-
+     3→"""
+     4→NARUTO  SPINNER — OB55 EDITION  (MULTI-EVENT)
+     5→Credit: KAWSAR | x64
+     6→Telegram: @kawsar449x
+     7→
+     8→Supports TWO account-file formats:
+     9→  1. JSON array  →  [{"uid":..., "password":...}, ...]
+    10→  2. Block text  →  kawsar.py output (UID / GAME UID / NICKNAME / ...)
+    11→"""
+    12→import sys, os, subprocess, time, json, binascii, asyncio, re, importlib
+    13→
+    14→# ─────────────────────────────────────────────
+    15→#  SAFE AUTO-INSTALL  (re-execs if it installs anything)
+    16→# ─────────────────────────────────────────────
+    17→def install_requirements():
+    18→    C_CYAN   = "\033[1;36m"
+    19→    C_YELLOW = "\033[1;33m"
+    20→    C_GREEN  = "\033[1;32m"
+    21→    C_RESET  = "\033[0m"
+    22→
+    23→    print(f"{C_CYAN}[»] Checking requirements...{C_RESET}")
+    24→
+    25→    required = [
+    26→        ('aiohttp',  'aiohttp'),
+    27→        ('Crypto',   'pycryptodome'),
+    28→        ('aiofiles', 'aiofiles'),
+    29→    ]
+    30→
+    31→    missing = []
+    32→    for imp_name, pip_name in required:
+    33→        try:
+    34→            __import__(imp_name)
+    35→        except ImportError:
+    36→            missing.append(pip_name)
+    37→
+    38→    if missing:
+    39→        for pip_name in missing:
+    40→            print(f"{C_YELLOW}[!] Installing {pip_name}...{C_RESET}")
+    41→            try:
+    42→                subprocess.check_call(
+    43→                    [sys.executable, '-m', 'pip', 'install', pip_name, '--quiet'],
+    44→                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    45→                )
+    46→            except subprocess.CalledProcessError:
+    47→                print(f"{C_YELLOW}[!] pip failed for {pip_name} — trying with --user{C_RESET}")
+    48→                subprocess.check_call(
+    49→                    [sys.executable, '-m', 'pip', 'install', '--user', pip_name, '--quiet']
+    50→                )
+    51→
+    52→        print(f"{C_GREEN}[✓] Packages installed — restarting script...{C_RESET}\n")
+    53→        importlib.invalidate_caches()
+    54→        os.execv(sys.executable, [sys.executable] + sys.argv)
+    55→
+    56→    print(f"{C_GREEN}[✓] All requirements ready!{C_RESET}\n")
+    57→
+    58→install_requirements()
+    59→
+    60→# ── NOW safe to import ──
+    61→import aiofiles
+    62→import aiohttp
+    63→from Crypto.Cipher import AES
+    64→from Crypto.Util.Padding import pad
+    65→from datetime import datetime
+    66→import gzip as _gzip
+    67→
+    68→# ── COLORS ──
+    69→C_RED     = "\033[1;31m"
+    70→C_GREEN   = "\033[1;32m"
+    71→C_YELLOW  = "\033[1;33m"
+    72→C_CYAN    = "\033[1;36m"
+    73→C_WHITE   = "\033[1;37m"
+    74→C_GOLD    = "\033[1;33;40m"
+    75→C_PINK    = "\033[1;95m"
+    76→C_RESET   = "\033[0m"
+    77→C_BG_RED  = "\033[1;37;41m"
+    78→C_BLUE    = "\033[1;34m"
+    79→C_BG_GREEN   = "\033[1;37;42m"
+    80→C_BG_YELLOW  = "\033[1;37;43m"
+    81→C_BG_MAGENTA = "\033[1;37;45m"
+    82→C_BG_CYAN    = "\033[1;37;46m"
+    83→C_DIM        = "\033[2m"
+    84→
+    85→# ─────────────────────────────────────────────
+    86→#  KAWSAR ASCII BANNER
+    87→# ─────────────────────────────────────────────
+    88→KAWSAR_BANNER = r"""
+    89→██╗░░██╗░█████╗░░██╗░░░░░░░██╗░██████╗░█████╗░██████╗░
+    90→██║░██╔╝██╔══██╗░██║░░██╗░░██║██╔════╝██╔══██╗██╔══██╗
+    91→█████═╝░███████║░╚██╗████╗██╔╝╚█████╗░███████║██████╔╝
+    92→██╔═██╗░██╔══██║░░████╔═████║░░╚═══██╗██╔══██║██╔══██╗
+    93→██║░╚██╗██║░░██║░░╚██╔╝░╚██╔╝░██████╔╝██║░░██║██║░░██║
+    94→╚═╝░░╚═╝╚═╝░░╚═╝░░░╚═╝░░░╚═╝░░╚═════╝░╚═╝░░╚═╝╚═╝░░╚═╝"""
+    95→
+    96→def grad(text, a, b):
+    97→    out = ""
+    98→    n = max(len(text) - 1, 1)
+    99→    for i, ch in enumerate(text):
+   100→        t  = i / n
+   101→        r  = int(a[0] + (b[0]-a[0])*t)
+   102→        g  = int(a[1] + (b[1]-a[1])*t)
+   103→        bl = int(a[2] + (b[2]-a[2])*t)
+   104→        out += f"\033[38;2;{r};{g};{bl}m{ch}"
+   105→    return out + C_RESET
+   106→
+   107→CREDIT_INFO = f"""
+   108→{grad(KAWSAR_BANNER, (0,200,255), (180,80,255))}
+   109→
+   110→{C_PINK}╔═══════════════════════════════════════════════════════════╗{C_RESET}
+   111→{C_PINK}║{C_GOLD}     🐰 FREE FIRE  ·  NARUTO   MULTI-SPINNER  🐰      {C_PINK}║{C_RESET}
+   112→{C_PINK}╠═══════════════════════════════════════════════════════════╣{C_RESET}
+   113→{C_PINK}║{C_GREEN}  👑  Credit     : {C_WHITE}KAWSAR | x64{C_GREEN}                            {C_PINK}║{C_RESET}
+   114→{C_PINK}║{C_CYAN}  📱  Telegram   : {C_WHITE}@kawsar449x{C_CYAN}                             {C_PINK}║{C_RESET}
+   115→{C_PINK}║{C_YELLOW}  ⚡  Version    : {C_WHITE}OB55  ·  5 EVENTS  ·  Fast{C_YELLOW}              {C_PINK}║{C_RESET}
+   116→{C_PINK}╚═══════════════════════════════════════════════════════════╝{C_RESET}
+   117→"""
+   118→
+   119→# ─────────────────────────────────────────────
+   120→#  CONSTANTS
+   121→# ─────────────────────────────────────────────
+   122→AES_KEY = b'Yg&tc%DEuh6%Zc^8'
+   123→AES_IV  = b'6oyZDr22E3ychjM%'
+   124→
+   125→# ──► DEFAULT ACCOUNTS FILE  ◄────────────────────────────────
+   126→ACCOUNTS_FILE = "KAWSARxGEN/accounts-BD.json"
+   127→
+   128→LOGIN_HOST   = "clientbp.ppmainecoonghj.com"
+   129→DEFAULT_URL  = f"https://{LOGIN_HOST}"
+   130→RELEASE_VER  = "OB55"
+   131→UNITY_VER    = "2018.4.12f1"
+   132→
+   133→# ── GLOBAL OUTPUT FILES ──────────────────────────────────────
+   134→SUMMARY_FILE = "NARUTO_spins_summary.txt"
+   135→LOG_FILE     = "NARUTO_spins_log.txt"
+   136→OUTPUT_FILE  = "NARUTO_spins_raw.txt"
+   137→
+   138→# ── EVENT DEFINITIONS ────────────────────────────────────────
+   139→EVENTS = {
+   140→    "naruto": {
+   141→        "name":     "NARUTO",
+   142→        "payload":  {1: 33, 2: 1, 3: 553, 4: 5, 13: 2},
+   143→        "prefix":   "NARUTO",
+   144→    },
+   145→    "skywin": {
+   146→        "name":     "NARUTO SKYWIN",
+   147→        "payload":  {1: 11, 2: 1, 3: 553, 4: 5, 13: 2},
+   148→        "prefix":   "SKYWIN",
+   149→    },
+   150→    "fist": {
+   151→        "name":     "NARUTO FIST",
+   152→        "payload":  {1: 29, 2: 1, 3: 553, 4: 3, 13: 2},
+   153→        "prefix":   "FIST",
+   154→    },
+   155→    "sasuke": {
+   156→        "name":     "SASUKE BUNDLE",
+   157→        "payload":  {1: 91, 2: 1, 3: 554, 4: 5, 13: 2},
+   158→        "prefix":   "SASUKE",
+   159→    },
+   160→}
+   161→
+   162→# ── ITEM DATABASE (merged across all events) ──
+   163→ITEM_DB = {
+   164→    # ── NARUTO (event 1) ──
+   165→    710047022: ("NARUTO BUNDLE",         "VERY_RARE"),
+   166→    909047015: ("RASENGAN EMOTE",        "RARE"),
+   167→    907104746: ("HOKAGE ROCK GLOW WALL", "RARE"),
+   168→    904047008: ("HOKAGE GLOW WALL",      "NORMAL"),
+   169→    903047008: ("RASENGAN SKIN",         "NORMAL"),
+   170→
+   171→    # ── NARUTO SKYWIN (event 2) ──
+   172→    911004701: ("NARUTO SKYWIN",         "VERY_RARE"),
+   173→    907104744: ("M4A1 - NARUTO THEME",   "RARE"),
+   174→    211047048: ("OBITO MASK",            "RARE"),
+   175→
+   176→    # ── NARUTO FIST (event 3) ──
+   177→    907104745: ("FIST",                  "VERY_RARE"),
+   178→
+   179→    # ── SASUKE BUNDLE (event 4) ──
+   180→    710047023: ("SASUKE BUNDLE",         "VERY_RARE"),
+   181→    907104743: ("KATANA",                "RARE"),
+   182→    907104742: ("KATANA",                "RARE"),
+   183→    907104748: ("GROZA",                 "RARE"),
+   184→}
+   185→
+   186→def classify_item(item_id: int):
+   187→    if item_id in ITEM_DB:
+   188→        return ITEM_DB[item_id]
+   189→    return (f"UNKNOWN_{item_id}", "NORMAL")
+   190→
+   191→# ─────────────────────────────────────────────
+   192→#  ACCOUNT FILE LOADER  (unchanged)
+   193→# ─────────────────────────────────────────────
+   194→def load_accounts(path: str):
+   195→    with open(path, 'r', encoding='utf-8') as f:
+   196→        raw = f.read()
+   197→
+   198→    # ── try JSON first ──
+   199→    try:
+   200→        data = json.loads(raw)
+   201→        if isinstance(data, list):
+   202→            records = data
+   203→        elif isinstance(data, dict) and 'accounts' in data:
+   204→            records = data['accounts']
+   205→        else:
+   206→            records = None
+   207→
+   208→        if records is not None:
+   209→            normalized = []
+   210→            for r in records:
+   211→                if not isinstance(r, dict):
+   212→                    continue
+   213→                entry = dict(r)
+   214→
+   215→                if 'uid' not in entry or not entry['uid']:
+   216→                    for alt in ('Account_uid', 'external_uid', 'Open_id'):
+   217→                        if r.get(alt):
+   218→                            entry['uid'] = str(r[alt])
+   219→                            break
+   220→
+   221→                if 'password' not in entry or not entry['password']:
+   222→                    for alt in ('Password', 'PASSWORD', 'pass', 'Pass'):
+   223→                        if r.get(alt):
+   224→                            entry['password'] = r[alt]
+   225→                            break
+   226→
+   227→                if 'access_token' not in entry and r.get('Access_token'):
+   228→                    entry['access_token'] = r['Access_token']
+   229→                if 'jwt' not in entry and r.get('Jwt_token'):
+   230→                    entry['jwt'] = r['Jwt_token']
+   231→                if 'region' not in entry and r.get('Region'):
+   232→                    entry['region'] = r['Region']
+   233→
+   234→                normalized.append(entry)
+   235→            return normalized
+   236→    except Exception:
+   237→        pass
+   238→
+   239→    # ── fall back to block-text parser ──
+   240→    accounts = []
+   241→    current = {}
+   242→    raw = re.sub(r'\033\[[0-9;]*m', '', raw)
+   243→
+   244→    FIELD_MAP = {
+   245→        "UID":          "uid",
+   246→        "GAME UID":     "game_uid",
+   247→        "NICKNAME":     "nickname",
+   248→        "PASSWORD":     "password",
+   249→        "REGION":       "region",
+   250→        "ACCESS TOKEN": "access_token",
+   251→        "OPEN ID":      "open_id",
+   252→        "JWT":          "jwt",
+   253→        "ONLINE IP":    "online_ip_port",
+   254→        "ACCOUNT IP":   "account_ip_port",
+   255→    }
+   256→
+   257→    for line in raw.splitlines():
+   258→        line = line.strip()
+   259→
+   260→        if not line or set(line) <= set('─-—_ '):
+   261→            if current.get("uid"):
+   262→                accounts.append(current)
+   263→                current = {}
+   264→            continue
+   265→
+   266→        m = re.match(r'^([A-Z][A-Z0-9 _]+?)\s*:\s*(.*)$', line)
+   267→        if not m:
+   268→            continue
+   269→
+   270→        label = m.group(1).strip()
+   271→        value = m.group(2).strip()
+   272→
+   273→        key = FIELD_MAP.get(label)
+   274→        if key:
+   275→            current[key] = value
+   276→
+   277→    if current.get("uid"):
+   278→        accounts.append(current)
+   279→
+   280→    if not accounts:
+   281→        raise ValueError("No accounts found — file is neither JSON nor kawsar block format")
+   282→
+   283→    return accounts
+   284→
+   285→# ── buffers & locks ──
+   286→LOG_BUFFER    = []
+   287→OUTPUT_BUFFER = []
+   288→LOG_LOCK      = asyncio.Lock()
+   289→OUTPUT_LOCK   = asyncio.Lock()
+   290→JSON_LOCK     = asyncio.Lock()
+   291→
+   292→# ── AES ──
+   293→def encrypt_data(data: bytes) -> bytes:
+   294→    c = AES.new(AES_KEY, AES.MODE_CBC, AES_IV)
+   295→    return c.encrypt(pad(data, AES.block_size))
+   296→
+   297→# ── PROTOBUF helpers ──
+   298→def _varint(n):
+   299→    out = []
+   300→    while True:
+   301→        b = n & 0x7F; n >>= 7
+   302→        if n: b |= 0x80
+   303→        out.append(b)
+   304→        if not n: break
+   305→    return bytes(out)
+   306→
+   307→def _field(fn, v):
+   308→    if isinstance(v, bool):  return _varint((fn<<3)|0) + _varint(int(v))
+   309→    if isinstance(v, int):   return _varint((fn<<3)|0) + _varint(v)
+   310→    if isinstance(v, bytes): return _varint((fn<<3)|2) + _varint(len(v)) + v
+   311→    if isinstance(v, str):
+   312→        b = v.encode()
+   313→        return _varint((fn<<3)|2) + _varint(len(b)) + b
+   314→    raise TypeError(f"unsupported {type(v)}")
+   315→
+   316→def assemble_proto(fields: dict) -> bytes:
+   317→    return b''.join(_field(int(k), v) for k, v in fields.items())
+   318→
+   319→def _read_varint(data, pos):
+   320→    result = 0; shift = 0
+   321→    while pos < len(data):
+   322→        bv = data[pos]; pos += 1
+   323→        result |= (bv & 0x7F) << shift
+   324→        if not (bv & 0x80): break
+   325→        shift += 7
+   326→    return result, pos
+   327→
+   328→def _try_parse_proto(raw: bytes):
+   329→    if not raw: return None
+   330→    out = {}; pos = 0; seen = 0
+   331→    try:
+   332→        while pos < len(raw):
+   333→            tag, pos = _read_varint(raw, pos)
+   334→            if tag == 0: return None
+   335→            fn, wt = tag >> 3, tag & 7
+   336→            if fn == 0 or fn > 536870911: return None
+   337→            if wt == 0:
+   338→                v, pos = _read_varint(raw, pos)
+   339→                out[fn] = v
+   340→            elif wt == 2:
+   341→                ln, pos = _read_varint(raw, pos)
+   342→                if pos + ln > len(raw): return None
+   343→                val = raw[pos:pos+ln]; pos += ln
+   344→                n = _try_parse_proto(val)
+   345→                if n and len(n) >= 1:
+   346→                    out[fn] = n
+   347→                else:
+   348→                    try:    out[fn] = val.decode('utf-8')
+   349→                    except: out[fn] = val.hex()
+   350→            elif wt == 5:
+   351→                if pos+4 > len(raw): return None
+   352→                out[fn] = raw[pos:pos+4].hex(); pos += 4
+   353→            elif wt == 1:
+   354→                if pos+8 > len(raw): return None
+   355→                out[fn] = raw[pos:pos+8].hex(); pos += 8
+   356→            else: return None
+   357→            seen += 1
+   358→        return out if seen else None
+   359→    except: return None
+   360→
+   361→# ── BODY BUILDERS ──
+   362→def build_payload(event_key: str) -> bytes:
+   363→    """Build encrypted payload for a given event."""
+   364→    fields = EVENTS[event_key]["payload"]
+   365→    return encrypt_data(assemble_proto(fields))
+   366→
+   367→# ── RESPONSE PARSER ──
+   368→def parse_gacha_response(data: bytes) -> dict:
+   369→    if data and data[:2] == b'\x1f\x8b':
+   370→        try: data = _gzip.decompress(data)
+   371→        except: pass
+   372→
+   373→    parsed = _try_parse_proto(data) or {}
+   374→    items = []
+   375→
+   376→    inner = parsed.get(1)
+   377→    if isinstance(inner, dict):
+   378→        raw = inner.get(2, "")
+   379→        if isinstance(raw, str):
+   380→            m = re.match(r'\s*(\d+)\s*[→\-–>]+\s*(.+?)\s*$', raw)
+   381→            if m:
+   382→                iid = int(m.group(1))
+   383→                iname = m.group(2).strip()
+   384→                items.append({"id": iid, "name": iname})
+   385→
+   386→    if not items:
+   387→        for mm in re.finditer(r'\b(\d{9})\b', str(parsed)):
+   388→            iid = int(mm.group(1))
+   389→            if not any(it['id'] == iid for it in items):
+   390→                items.append({"id": iid, "name": None})
+   391→
+   392→    for it in items:
+   393→        default_name, rarity = classify_item(it['id'])
+   394→        if not it['name'] or it['name'].startswith("UNKNOWN"):
+   395→            it['name'] = default_name
+   396→        it['rarity'] = rarity
+   397→
+   398→    return {"items": items, "raw": parsed}
+   399→
+   400→# ── LOG / SAVE helpers ──
+   401→async def async_log(message: str):
+   402→    timestamp = time.strftime("[%H:%M:%S]")
+   403→    clean_msg = f"{timestamp} {message}"
+   404→    print(clean_msg)
+   405→    file_msg = re.sub(r'\033\[[0-9;]*m', '', clean_msg)
+   406→    async with LOG_LOCK:
+   407→        LOG_BUFFER.append(file_msg)
+   408→
+   409→async def async_save_raw_output(data):
+   410→    try:
+   411→        async with OUTPUT_LOCK:
+   412→            OUTPUT_BUFFER.append(str(data) + "\n" + "-"*50)
+   413→    except: pass
+   414→
+   415→def save_final_data():
+   416→    if LOG_BUFFER:
+   417→        print(f"\n{C_CYAN}[»] Saving Logs...{C_RESET}")
+   418→        with open(LOG_FILE, "w", encoding="utf-8") as f:
+   419→            f.write("\n".join(LOG_BUFFER))
+   420→    if OUTPUT_BUFFER:
+   421→        print(f"{C_CYAN}[»] Saving Raw Output...{C_RESET}")
+   422→        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+   423→            f.write("\n".join(OUTPUT_BUFFER))
+   424→
+   425→async def save_item_entry(rarity: str, entry: dict, file_prefix: str = "NARUTO"):
+   426→    """Save item to event-specific JSON file."""
+   427→    target = {
+   428→        "VERY_RARE": f"{file_prefix}_very_rare.json",
+   429→        "RARE":      f"{file_prefix}_rare.json",
+   430→        "NORMAL":    f"{file_prefix}_normal.json",
+   431→    }.get(rarity, f"{file_prefix}_normal.json")
+   432→
+   433→    async with JSON_LOCK:
+   434→        for attempt in range(3):
+   435→            try:
+   436→                if os.path.exists(target):
+   437→                    async with aiofiles.open(target, 'r', encoding='utf-8') as f:
+   438→                        content = await f.read()
+   439→                        data = json.loads(content) if content else []
+   440→                else:
+   441→                    data = []
+   442→                data.append(entry)
+   443→                async with aiofiles.open(target, 'w', encoding='utf-8') as f:
+   444→                    await f.write(json.dumps(data, indent=4))
+   445→                return
+   446→            except Exception:
+   447→                await asyncio.sleep(0.1 * (attempt + 1))
+   448→        await async_log(f"{C_RED}[!] Failed to save {rarity} item {entry.get('item_id')}{C_RESET}")
+   449→
+   450→# ── SERVER SELECT ──
+   451→SERVER_DB = {
+   452→    "BD": ("Mena", DEFAULT_URL, ["BD", "BD", "1"])
+   453→}
+   454→
+   455→def select_server() -> str:
+   456→    print(f"\n{C_CYAN}[ SERVER ]{C_RESET} {C_GREEN}BD / Mena → {DEFAULT_URL}{C_RESET}")
+   457→    return DEFAULT_URL
+   458→
+   459→# ── EXTERNAL JWT API ──
+   460→EXTERNAL_API_URL = "https://ff-jwt-gen-api.lovable.app//api/public/token"
+   461→
+   462→async def get_token(session, uid, password, retries):
+   463→    for attempt in range(retries):
+   464→        try:
+   465→            params = {'uid': uid, 'password': password}
+   466→            async with session.get(EXTERNAL_API_URL, params=params,
+   467→                                   ssl=False,
+   468→                                   timeout=aiohttp.ClientTimeout(total=15)) as res:
+   469→                if res.status == 200:
+   470→                    data = await res.json()
+   471→                    if data.get("success"):
+   472→                        token = data.get("token")
+   473→                        if token and isinstance(token, str) and len(token) > 50:
+   474→                            return token
+   475→        except Exception:
+   476→            await asyncio.sleep(0.4)
+   477→    return None
+   478→
+   479→# ── GACHA REQUEST ──
+   480→async def gacha_req(session, token, payload, url, max_retries):
+   481→    if not url.endswith("/PurchaseGacha"):
+   482→        url = f"{url}/PurchaseGacha"
+   483→
+   484→    headers = {
+   485→        'User-Agent':      f"UnityPlayer/{UNITY_VER} (UnityWebRequest/1.0, libcurl/8.5.0-DEV)",
+   486→        'Accept':          "*/*",
+   487→        'Accept-Encoding': "deflate, gzip",
+   488→        'Authorization':   f"Bearer {token}",
+   489→        'X-GA':            "v1 1",
+   490→        'X-Ga-Sv':         str(int(time.time())),
+   491→        'ReleaseVersion':  RELEASE_VER,
+   492→        'Content-Type':    "application/x-www-form-urlencoded",
+   493→        'X-Unity-Version': UNITY_VER,
+   494→        'Host':            LOGIN_HOST,
+   495→    }
+   496→
+   497→    last_status = 0
+   498→    for _ in range(1, max_retries + 1):
+   499→        try:
+   500→            timeout = aiohttp.ClientTimeout(total=20)
+   501→            async with session.post(url, headers=headers, data=payload,
+   502→                                    ssl=False, timeout=timeout) as res:
+   503→                last_status = res.status
+   504→                if res.status == 200:
+   505→                    body = await res.read()
+   506→                    return 200, body
+   507→                elif res.status in (401, 403):
+   508→                    return res.status, None
+   509→                else:
+   510→                    await asyncio.sleep(0.2)
+   511→        except Exception:
+   512→            last_status = 999
+   513→            await asyncio.sleep(0.3)
+   514→    return last_status, None
+   515→
+   516→# ─────────────────────────────────────────────
+   517→#  JWT PREFETCH CACHE
+   518→# ─────────────────────────────────────────────
+   519→jwt_cache: dict = {}
+   520→jwt_cache_lock = asyncio.Lock()
+   521→
+   522→async def prefetch_token(session, acc, retries: int):
+   523→    uid = str(acc.get("uid", ""))
+   524→    pwd = acc.get("password", "")
+   525→    if not uid or not pwd:
+   526→        return
+   527→    token = await get_token(session, uid, pwd, retries)
+   528→    async with jwt_cache_lock:
+   529→        jwt_cache[uid] = token
+   530→
+   531→async def prefetch_all_tokens(session, accounts: list, retries: int,
+   532→                              concurrency: int = 20):
+   533→    sem = asyncio.Semaphore(concurrency)
+   534→
+   535→    async def _bounded(acc):
+   536→        async with sem:
+   537→            await prefetch_token(session, acc, retries)
+   538→
+   539→    print(f"{C_CYAN}[»] Prefetching JWT tokens ({len(accounts)} accounts)...{C_RESET}")
+   540→    await asyncio.gather(*[_bounded(acc) for acc in accounts],
+   541→                         return_exceptions=True)
+   542→    warm = sum(1 for v in jwt_cache.values() if v)
+   543→    print(f"{C_GREEN}[✓] Tokens ready: {warm}/{len(accounts)}{C_RESET}\n")
+   544→
+   545→
+   546→# ── ACCOUNT PROCESSOR (single event) ──
+   547→async def process_account_single_event(semaphore, session, acc, idx, total,
+   548→                                       target_url, event_key, login_retry, spin_retry,
+   549→                                       shared_rare_hits, shared_counters,
+   550→                                       counters_lock, hits_lock):
+   551→    async with semaphore:
+   552→        uid = str(acc.get("uid", "Unknown"))
+   553→        pwd = acc.get("password", "Unknown")
+   554→        ev = EVENTS[event_key]
+   555→        payload = build_payload(event_key)
+   556→
+   557→        await async_log(f"{C_GOLD}➤ [{idx+1}/{total}] UID: {C_CYAN}{uid}{C_RESET} | Event: {C_PINK}{ev['name']}{C_RESET}")
+   558→
+   559→        async with jwt_cache_lock:
+   560→            token = jwt_cache.get(uid)
+   561→
+   562→        if not token:
+   563→            token = await get_token(session, uid, pwd, login_retry)
+   564→
+   565→        if not token:
+   566→            await async_log(f"{C_RED}   [✗] Token Failed{C_RESET}")
+   567→            return
+   568→
+   569→        status_code, resp = await gacha_req(session, token, payload, target_url, spin_retry)
+   570→
+   571→        if status_code == 200 and resp:
+   572→            try:
+   573→                parsed = parse_gacha_response(resp)
+   574→                await async_save_raw_output(parsed)
+   575→                found_items = parsed.get('items', [])
+   576→
+   577→                if not found_items:
+   578→                    await async_log(f"{C_GREEN}   ✓ Spin Success - No items in response{C_RESET}")
+   579→                    return
+   580→
+   581→                async with counters_lock:
+   582→                    shared_counters["total_items"] += len(found_items)
+   583→
+   584→                for item in found_items:
+   585→                    iid    = item['id']
+   586→                    iname  = item['name']
+   587→                    rarity = item['rarity']
+   588→
+   589→                    entry = {
+   590→                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+   591→                        "event":     ev['name'],
+   592→                        "guestUid":  uid,
+   593→                        "guestPass": pwd,
+   594→                        "item_id":   iid,
+   595→                        "item_name": iname,
+   596→                        "rarity":    rarity,
+   597→                    }
+   598→                    await save_item_entry(rarity, entry, file_prefix=ev['prefix'])
+   599→
+   600→                    if rarity == "VERY_RARE":
+   601→                        async with counters_lock:
+   602→                            shared_counters["very_rare"] += 1
+   603→                        async with hits_lock:
+   604→                            shared_rare_hits.append(
+   605→                                f"[{ev['name']}] UID: {uid} | Pass: {pwd} | ★★★ VERY RARE: {iname} (ID: {iid})"
+   606→                            )
+   607→                        await async_log(
+   608→                            f"   {C_BG_MAGENTA} ★★★ VERY RARE ★★★ {C_RESET} "
+   609→                            f"{C_GOLD}{iname} {C_PINK}(ID: {iid}){C_RESET}"
+   610→                        )
+   611→                    elif rarity == "RARE":
+   612→                        async with counters_lock:
+   613→                            shared_counters["rare"] += 1
+   614→                        async with hits_lock:
+   615→                            shared_rare_hits.append(
+   616→                                f"[{ev['name']}] UID: {uid} | Pass: {pwd} | ⭐ RARE: {iname} (ID: {iid})"
+   617→                            )
+   618→                        await async_log(
+   619→                            f"   {C_BG_YELLOW} ⭐ RARE ⭐ {C_RESET} "
+   620→                            f"{C_GOLD}{iname} {C_PINK}(ID: {iid}){C_RESET}"
+   621→                        )
+   622→                    else:
+   623→                        async with counters_lock:
+   624→                            shared_counters["normal"] += 1
+   625→                        await async_log(
+   626→                            f"   {C_CYAN}📦 NORMAL{C_RESET} "
+   627→                            f"{C_WHITE}{iname} (ID: {iid}){C_RESET}"
+   628→                        )
+   629→            except Exception as e:
+   630→                await async_log(f"{C_RED}   [!] Parse Error: {e}{C_RESET}")
+   631→        else:
+   632→            err_msg = f"HTTP {status_code}" if status_code != 999 else "Connection Fail"
+   633→            await async_log(f"{C_RED}   [✗] {err_msg}{C_RESET}")
+   634→
+   635→
+   636→# ── ACCOUNT PROCESSOR (all events) ──
+   637→async def process_account_all_events(semaphore, session, acc, idx, total,
+   638→                                     target_url, login_retry, spin_retry,
+   639→                                     shared_rare_hits, shared_counters,
+   640→                                     counters_lock, hits_lock):
+   641→    async with semaphore:
+   642→        uid = str(acc.get("uid", "Unknown"))
+   643→        pwd = acc.get("password", "Unknown")
+   644→
+   645→        await async_log(f"{C_GOLD}➤ [{idx+1}/{total}] UID: {C_CYAN}{uid}{C_RESET} | {C_PINK}ALL EVENTS{C_RESET}")
+   646→
+   647→        async with jwt_cache_lock:
+   648→            token = jwt_cache.get(uid)
+   649→
+   650→        if not token:
+   651→            token = await get_token(session, uid, pwd, login_retry)
+   652→
+   653→        if not token:
+   654→            await async_log(f"{C_RED}   [✗] Token Failed{C_RESET}")
+   655→            return
+   656→
+   657→        # Loop through every event sequentially per account
+   658→        for event_key, ev in EVENTS.items():
+   659→            payload = build_payload(event_key)
+   660→            status_code, resp = await gacha_req(session, token, payload, target_url, spin_retry)
+   661→
+   662→            if status_code == 200 and resp:
+   663→                try:
+   664→                    parsed = parse_gacha_response(resp)
+   665→                    await async_save_raw_output(parsed)
+   666→                    found_items = parsed.get('items', [])
+   667→
+   668→                    if not found_items:
+   669→                        await async_log(f"   {C_DIM}✓ {ev['name']}: no items{C_RESET}")
+   670→                        continue
+   671→
+   672→                    async with counters_lock:
+   673→                        shared_counters["total_items"] += len(found_items)
+   674→
+   675→                    for item in found_items:
+   676→                        iid    = item['id']
+   677→                        iname  = item['name']
+   678→                        rarity = item['rarity']
+   679→
+   680→                        entry = {
+   681→                            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+   682→                            "event":     ev['name'],
+   683→                            "guestUid":  uid,
+   684→                            "guestPass": pwd,
+   685→                            "item_id":   iid,
+   686→                            "item_name": iname,
+   687→                            "rarity":    rarity,
+   688→                        }
+   689→                        await save_item_entry(rarity, entry, file_prefix=ev['prefix'])
+   690→
+   691→                        if rarity == "VERY_RARE":
+   692→                            async with counters_lock:
+   693→                                shared_counters["very_rare"] += 1
+   694→                            async with hits_lock:
+   695→                                shared_rare_hits.append(
+   696→                                    f"[{ev['name']}] UID: {uid} | Pass: {pwd} | ★★★ VERY RARE: {iname} (ID: {iid})"
+   697→                                )
+   698→                            await async_log(
+   699→                                f"   {C_BG_MAGENTA} ★★★ VERY RARE ★★★ {C_RESET} "
+   700→                                f"{C_GOLD}{iname} {C_PINK}(ID: {iid}){C_RESET}"
+   701→                            )
+   702→                        elif rarity == "RARE":
+   703→                            async with counters_lock:
+   704→                                shared_counters["rare"] += 1
+   705→                            async with hits_lock:
+   706→                                shared_rare_hits.append(
+   707→                                    f"[{ev['name']}] UID: {uid} | Pass: {pwd} | ⭐ RARE: {iname} (ID: {iid})"
+   708→                                )
+   709→                            await async_log(
+   710→                                f"   {C_BG_YELLOW} ⭐ RARE ⭐ {C_RESET} "
+   711→                                f"{C_GOLD}{iname} {C_PINK}(ID: {iid}){C_RESET}"
+   712→                            )
+   713→                        else:
+   714→                            async with counters_lock:
+   715→                                shared_counters["normal"] += 1
+   716→                            await async_log(
+   717→                                f"   {C_CYAN}📦 NORMAL{C_RESET} "
+   718→                                f"{C_WHITE}{iname} (ID: {iid}){C_RESET}"
+   719→                            )
+   720→                except Exception as e:
+   721→                    await async_log(f"{C_RED}   [!] Parse Error: {e}{C_RESET}")
+   722→            else:
+   723→                err_msg = f"HTTP {status_code}" if status_code != 999 else "Connection Fail"
+   724→                await async_log(f"{C_RED}   [✗] {ev['name']}: {err_msg}{C_RESET}")
+   725→
+   726→            # small delay between events on same account to avoid rate limits
+   727→            await asyncio.sleep(0.3)
+   728→
+   729→
+   730→# ── MAIN ──
+   731→async def main():
+   732→    os.system('cls' if os.name == 'nt' else 'clear')
+   733→    print(CREDIT_INFO)
+   734→    print()
+   735→    open(LOG_FILE, 'w').close()
+   736→
+   737→    # ── resolve accounts file ────────────────────────────────
+   738→    if len(sys.argv) > 1:
+   739→        p = sys.argv[1].strip().replace('"', '').replace("'", "")
+   740→        if not os.path.exists(p):
+   741→            print(f"{C_RED}[!] File from CLI not found: {p}{C_RESET}")
+   742→            return
+   743→        print(f"{C_GREEN}[+] Using CLI file: {p}{C_RESET}")
+   744→    elif ACCOUNTS_FILE and os.path.exists(ACCOUNTS_FILE):
+   745→        p = ACCOUNTS_FILE
+   746→        print(f"{C_GREEN}[+] Using default file: {p}{C_RESET}")
+   747→    else:
+   748→        while True:
+   749→            p = input(f"{C_YELLOW}[?] Enter path of UID file: {C_RESET}").strip()
+   750→            p = p.replace('"', '').replace("'", "")
+   751→            if os.path.exists(p): break
+   752→            print(f"{C_RED}[!] File not found.{C_RESET}")
+   753→
+   754→    # ── load accounts ────────────────────────────────────────
+   755→    try:
+   756→        accounts = load_accounts(p)
+   757→        print(f"{C_GREEN}[+] Loaded {len(accounts)} Accounts{C_RESET}")
+   758→    except Exception as e:
+   759→        print(f"{C_RED}[!] Failed to load accounts: {e}{C_RESET}")
+   760→        return
+   761→
+   762→    target_url = select_server()
+   763→
+   764→    # ── EVENT MENU ───────────────────────────────────────────
+   765→    print(f"\n{C_CYAN}╔═══════════════════════════════════════════════════════════╗{C_RESET}")
+   766→    print(f"{C_CYAN}║{C_GOLD}              🎯  SELECT SPIN EVENT  🎯                    {C_CYAN}║{C_RESET}")
+   767→    print(f"{C_CYAN}╠═══════════════════════════════════════════════════════════╣{C_RESET}")
+   768→    print(f"{C_CYAN}║{C_YELLOW} [1]{C_WHITE} NARUTO           {C_DIM}→ {{1:33, 2:1, 3:553, 4:5, 13:2}}{C_RESET}    {C_CYAN}║{C_RESET}")
+   769→    print(f"{C_CYAN}║{C_YELLOW} [2]{C_WHITE} NARUTO SKYWIN    {C_DIM}→ {{1:11, 2:1, 3:553, 4:5, 13:2}}{C_RESET}    {C_CYAN}║{C_RESET}")
+   770→    print(f"{C_CYAN}║{C_YELLOW} [3]{C_WHITE} NARUTO FIST      {C_DIM}→ {{1:29, 2:1, 3:553, 4:3, 13:2}}{C_RESET}    {C_CYAN}║{C_RESET}")
+   771→    print(f"{C_CYAN}║{C_YELLOW} [4]{C_WHITE} SASUKE BUNDLE    {C_DIM}→ {{1:91, 2:1, 3:554, 4:5, 13:2}}{C_RESET}    {C_CYAN}║{C_RESET}")
+   772→    print(f"{C_CYAN}║{C_BG_MAGENTA} [5] 🔥 SPIN ALL EVENTS (1→2→3→4)                        {C_CYAN}║{C_RESET}")
+   773→    print(f"{C_CYAN}║{C_YELLOW} [6]{C_WHITE} CUSTOM HEX PAYLOAD                                    {C_CYAN}║{C_RESET}")
+   774→    print(f"{C_CYAN}╚═══════════════════════════════════════════════════════════╝{C_RESET}")
+   775→
+   776→    event_choice = input(f"\n{C_CYAN}[?] Enter Choice (default 1): {C_RESET}").strip() or "1"
+   777→
+   778→    # map choice → event key (or special modes)
+   779→    spin_all = False
+   780→    custom_hex = False
+   781→    event_key = None
+   782→    custom_payload = None
+   783→
+   784→    if event_choice == "1":
+   785→        event_key = "naruto"
+   786→    elif event_choice == "2":
+   787→        event_key = "skywin"
+   788→    elif event_choice == "3":
+   789→        event_key = "fist"
+   790→    elif event_choice == "4":
+   791→        event_key = "sasuke"
+   792→    elif event_choice == "5":
+   793→        spin_all = True
+   794→    elif event_choice == "6":
+   795→        custom_hex = True
+   796→        raw_hex = input(f"{C_CYAN}[?] Enter Hex Payload: {C_RESET}").strip()
+   797→        try:
+   798→            custom_payload = bytes.fromhex(raw_hex.replace(" ", ""))
+   799→            print(f"{C_GREEN}[✓] Custom payload loaded ({len(custom_payload)} bytes){C_RESET}")
+   800→        except Exception as e:
+   801→            print(f"{C_RED}[!] Invalid hex: {e}{C_RESET}")
+   802→            return
+   803→    else:
+   804→        print(f"{C_RED}[!] Invalid choice{C_RESET}")
+   805→        return
+   806→
+   807→    # ── show selected mode ──
+   808→    if spin_all:
+   809→        print(f"\n{C_BG_MAGENTA}[✓] MODE: SPIN ALL EVENTS (NARUTO → SKYWIN → FIST → SASUKE){C_RESET}")
+   810→        payload = None
+   811→    elif custom_hex:
+   812→        print(f"\n{C_YELLOW}[✓] MODE: CUSTOM HEX PAYLOAD{C_RESET}")
+   813→        payload = custom_payload
+   814→    else:
+   815→        ev = EVENTS[event_key]
+   816→        print(f"\n{C_GREEN}[✓] MODE: {ev['name']}  →  payload {ev['payload']}{C_RESET}")
+   817→        payload = build_payload(event_key)
+   818→
+   819→    try:
+   820→        login_retry = int(input(f"{C_CYAN}[?] Login Retry (Default 3): {C_RESET}") or "3")
+   821→        spin_retry  = 3
+   822→        start_from  = int(input(f"{C_CYAN}[?] Start from Account (Default 1): {C_RESET}") or "1") - 1
+   823→        if start_from < 0: start_from = 0
+   824→        concurrency = int(input(f"{C_CYAN}[?] Concurrency (default 5): {C_RESET}") or "5")
+   825→        if concurrency < 1: concurrency = 1
+   826→        batch_size  = int(input(f"{C_CYAN}[?] Batch Size — Gen N then Spin (Default 50): {C_RESET}") or "50")
+   827→        if batch_size < 1: batch_size = 50
+   828→    except:
+   829→        login_retry = 3
+   830→        spin_retry  = 3
+   831→        start_from  = 0
+   832→        concurrency = 5
+   833→        batch_size  = 50
+   834→
+   835→    if start_from >= len(accounts):
+   836→        start_from = 0
+   837→
+   838→    print(f"\n{C_GREEN}[*] Starting from Account {start_from + 1}...{C_RESET}")
+   839→    print(f"{C_GREEN}[*] Concurrency : {concurrency}{C_RESET}")
+   840→    print(f"{C_GREEN}[*] Batch Size  : {batch_size} (gen → spin per batch){C_RESET}\n")
+   841→
+   842→    shared_rare_hits = []
+   843→    shared_counters  = {"very_rare": 0, "rare": 0, "normal": 0, "total_items": 0}
+   844→    counters_lock    = asyncio.Lock()
+   845→    hits_lock        = asyncio.Lock()
+   846→
+   847→    semaphore = asyncio.Semaphore(concurrency)
+   848→    accounts_to_process = accounts[start_from:]
+   849→    total_accounts = len(accounts_to_process)
+   850→
+   851→    batches = [
+   852→        accounts_to_process[i : i + batch_size]
+   853→        for i in range(0, total_accounts, batch_size)
+   854→    ]
+   855→    total_batches = len(batches)
+   856→
+   857→    async with aiohttp.ClientSession() as session:
+   858→        for batch_idx, batch in enumerate(batches):
+   859→            batch_start_abs = start_from + batch_idx * batch_size
+   860→            print(
+   861→                f"{C_PINK}[BATCH {batch_idx + 1}/{total_batches}] "
+   862→                f"Accounts {batch_start_abs + 1}–{batch_start_abs + len(batch)}"
+   863→                f" of {len(accounts)}{C_RESET}"
+   864→            )
+   865→
+   866→            # ── step 1: prefetch JWT tokens for this batch ──
+   867→            await prefetch_all_tokens(
+   868→                session, batch,
+   869→                retries=login_retry,
+   870→                concurrency=min(concurrency * 4, 40),
+   871→            )
+   872→
+   873→            # ── step 2: spin this batch concurrently ──
+   874→            if spin_all:
+   875→                tasks = [
+   876→                    asyncio.create_task(
+   877→                        process_account_all_events(
+   878→                            semaphore, session, acc,
+   879→                            batch_start_abs + i, len(accounts),
+   880→                            target_url, login_retry, spin_retry,
+   881→                            shared_rare_hits, shared_counters,
+   882→                            counters_lock, hits_lock,
+   883→                        )
+   884→                    )
+   885→                    for i, acc in enumerate(batch)
+   886→                ]
+   887→            else:
+   888→                tasks = [
+   889→                    asyncio.create_task(
+   890→                        process_account_single_event(
+   891→                            semaphore, session, acc,
+   892→                            batch_start_abs + i, len(accounts),
+   893→                            target_url,
+   894→                            event_key if not custom_hex else "__custom__",
+   895→                            login_retry, spin_retry,
+   896→                            shared_rare_hits, shared_counters,
+   897→                            counters_lock, hits_lock,
+   898→                        )
+   899→                    )
+   900→                    for i, acc in enumerate(batch)
+   901→                ]
+   902→            # For custom hex, we need a different approach — use a wrapper
+   903→            if custom_hex:
+   904→                # Cancel the pre-made tasks and create custom ones
+   905→                for t in tasks:
+   906→                    t.cancel()
+   907→                tasks = [
+   908→                    asyncio.create_task(
+   909→                        _process_custom(
+   910→                            semaphore, session, acc,
+   911→                            batch_start_abs + i, len(accounts),
+   912→                            target_url, payload, login_retry, spin_retry,
+   913→                            shared_rare_hits, shared_counters,
+   914→                            counters_lock, hits_lock,
+   915→                        )
+   916→                    )
+   917→                    for i, acc in enumerate(batch)
+   918→                ]
+   919→
+   920→            await asyncio.gather(*tasks, return_exceptions=True)
+   921→
+   922→            print(
+   923→                f"{C_GREEN}[✓] Batch {batch_idx + 1} done — "
+   924→                f"VR:{shared_counters['very_rare']} "
+   925→                f"R:{shared_counters['rare']} "
+   926→                f"N:{shared_counters['normal']}{C_RESET}\n"
+   927→            )
+   928→
+   929→    # ── FINAL REPORT ──
+   930→    print(f"\n{C_CYAN}=========================================={C_RESET}")
+   931→    print(f"{C_WHITE}      NARUTO MULTI-EVENT REPORT        {C_RESET}")
+   932→    print(f"{C_CYAN}=========================================={C_RESET}")
+   933→    print(f"{C_BG_MAGENTA} ★★★ VERY RARE: {shared_counters['very_rare']}{C_RESET}")
+   934→    print(f"{C_BG_YELLOW} ⭐ RARE:        {shared_counters['rare']}{C_RESET}")
+   935→    print(f"{C_CYAN} 📦 NORMAL:      {shared_counters['normal']}{C_RESET}")
+   936→    print(f"{C_GREEN} Total Items:    {shared_counters['total_items']}{C_RESET}")
+   937→    print(f"{C_YELLOW} Accounts:       {total_accounts}{C_RESET}")
+   938→    if spin_all:
+   939→        print(f"{C_BG_MAGENTA} Events:        ALL (4 events per account){C_RESET}")
+   940→    elif custom_hex:
+   941→        print(f"{C_YELLOW} Events:        CUSTOM PAYLOAD{C_RESET}")
+   942→    else:
+   943→        print(f"{C_GREEN} Event:         {EVENTS[event_key]['name']}{C_RESET}")
+   944→    print(f"{C_CYAN}=========================================={C_RESET}")
+   945→
+   946→    with open(SUMMARY_FILE, "w", encoding="utf-8") as f:
+   947→        f.write("=== FREE FIRE NARUTO MULTI-EVENT RESULTS ===\n")
+   948→        f.write("Credit: KAWSAR | x64   |   Telegram: @kawsar449x\n\n")
+   949→        f.write(f"VERY RARE : {shared_counters['very_rare']}\n")
+   950→        f.write(f"RARE      : {shared_counters['rare']}\n")
+   951→        f.write(f"NORMAL    : {shared_counters['normal']}\n")
+   952→        f.write(f"Total     : {shared_counters['total_items']}\n\n")
+   953→        f.write("=== HITS ===\n")
+   954→        if shared_rare_hits:
+   955→            for hit in shared_rare_hits:
+   956→                print(f"{C_BG_GREEN}>> {hit}{C_RESET}")
+   957→                f.write(hit + "\n")
+   958→        else:
+   959→            print(f"{C_WHITE}No rare items found.{C_RESET}")
+   960→            f.write("No rare items found.\n")
+   961→
+   962→    print(f"\n{C_YELLOW}📁 Files Generated:{C_RESET}")
+   963→    print(f"   • NARUTO_very_rare.json     — NARUTO very rare items")
+   964→    print(f"   • SKYWIN_very_rare.json     — SKYWIN very rare items")
+   965→    print(f"   • FIST_very_rare.json       — FIST very rare items")
+   966→    print(f"   • SASUKE_very_rare.json     — SASUKE very rare items")
+   967→    print(f"   • *_rare.json / *_normal.json — per-event files")
+   968→    print(f"   • {SUMMARY_FILE}     — Summary report")
+   969→    print(f"   • {LOG_FILE}         — Terminal logs")
+   970→    print(f"   • {OUTPUT_FILE}      — Raw responses")
+   971→
+   972→    print(f"\n{C_PINK}═══════════════════════════════════════════════════════════{C_RESET}")
+   973→    print(f"{C_GOLD}  Made with ❤  by  KAWSAR | x64   ·   Tg: @kawsar449x{C_RESET}")
+   974→    print(f"{C_PINK}═══════════════════════════════════════════════════════════{C_RESET}\n")
+   975→
+   976→
+   977→# ── CUSTOM PAYLOAD PROCESSOR ──
+   978→async def _process_custom(semaphore, session, acc, idx, total,
+   979→                          target_url, payload, login_retry, spin_retry,
+   980→                          shared_rare_hits, shared_counters,
+   981→                          counters_lock, hits_lock):
+   982→    async with semaphore:
+   983→        uid = str(acc.get("uid", "Unknown"))
+   984→        pwd = acc.get("password", "Unknown")
+   985→
+   986→        await async_log(f"{C_GOLD}➤ [{idx+1}/{total}] UID: {C_CYAN}{uid}{C_RESET} | {C_YELLOW}CUSTOM{C_RESET}")
+   987→
+   988→        async with jwt_cache_lock:
+   989→            token = jwt_cache.get(uid)
+   990→
+   991→        if not token:
+   992→            token = await get_token(session, uid, pwd, login_retry)
+   993→
+   994→        if not token:
+   995→            await async_log(f"{C_RED}   [✗] Token Failed{C_RESET}")
+   996→            return
+   997→
+   998→        status_code, resp = await gacha_req(session, token, payload, target_url, spin_retry)
+   999→
+  1000→        if status_code == 200 and resp:
+  1001→            try:
+  1002→                parsed = parse_gacha_response(resp)
+  1003→                await async_save_raw_output(parsed)
+  1004→                found_items = parsed.get('items', [])
+  1005→
+  1006→                if not found_items:
+  1007→                    await async_log(f"{C_GREEN}   ✓ Spin Success - No items{C_RESET}")
+  1008→                    return
+  1009→
+  1010→                async with counters_lock:
+  1011→                    shared_counters["total_items"] += len(found_items)
+  1012→
+  1013→                for item in found_items:
+  1014→                    iid    = item['id']
+  1015→                    iname  = item['name']
+  1016→                    rarity = item['rarity']
+  1017→
+  1018→                    entry = {
+  1019→                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+  1020→                        "event":     "CUSTOM",
+  1021→                        "guestUid":  uid,
+  1022→                        "guestPass": pwd,
+  1023→                        "item_id":   iid,
+  1024→                        "item_name": iname,
+  1025→                        "rarity":    rarity,
+  1026→                    }
+  1027→                    await save_item_entry(rarity, entry, file_prefix="CUSTOM")
+  1028→
+  1029→                    if rarity == "VERY_RARE":
+  1030→                        async with counters_lock:
+  1031→                            shared_counters["very_rare"] += 1
+  1032→                        async with hits_lock:
+  1033→                            shared_rare_hits.append(
+  1034→                                f"[CUSTOM] UID: {uid} | Pass: {pwd} | ★★★ VERY RARE: {iname} (ID: {iid})"
+  1035→                            )
+  1036→                        await async_log(f"   {C_BG_MAGENTA} ★★★ VERY RARE ★★★ {C_RESET} {C_GOLD}{iname} {C_PINK}(ID: {iid}){C_RESET}")
+  1037→                    elif rarity == "RARE":
+  1038→                        async with counters_lock:
+  1039→                            shared_counters["rare"] += 1
+  1040→                        async with hits_lock:
+  1041→                            shared_rare_hits.append(
+  1042→                                f"[CUSTOM] UID: {uid} | Pass: {pwd} | ⭐ RARE: {iname} (ID: {iid})"
+  1043→                            )
+  1044→                        await async_log(f"   {C_BG_YELLOW} ⭐ RARE ⭐ {C_RESET} {C_GOLD}{iname} {C_PINK}(ID: {iid}){C_RESET}")
+  1045→                    else:
+  1046→                        async with counters_lock:
+  1047→                            shared_counters["normal"] += 1
+  1048→                        await async_log(f"   {C_CYAN}📦 NORMAL{C_RESET} {C_WHITE}{iname} (ID: {iid}){C_RESET}")
+  1049→            except Exception as e:
+  1050→                await async_log(f"{C_RED}   [!] Parse Error: {e}{C_RESET}")
+  1051→        else:
+  1052→            err_msg = f"HTTP {status_code}" if status_code != 999 else "Connection Fail"
+  1053→            await async_log(f"{C_RED}   [✗] {err_msg}{C_RESET}")
+  1054→
+  1055→
+  1056→if __name__ == "__main__":
+  1057→    try:
+  1058→        asyncio.run(main())
+  1059→    except KeyboardInterrupt:
+  1060→        print(f"\n\n{C_RED}[!] Stopped by User.{C_RESET}")
+  1061→    finally:
+  1062→        save_final_data()

@@ -1,0 +1,29 @@
+# VenomXNG — SearXNG settings for the docker-compose optional sidecar
+use_default_settings: true
+
+general:
+  instance_name: "VenomXNG"
+  debug: false
+
+search:
+  safe_search: 0
+  autocomplete: "duckduckgo"
+  formats:
+    - html
+    - json
+
+server:
+  secret_key: "venom-secret-change-me"
+  bind_address: "0.0.0.0"
+  port: 8080
+  limiter: false
+
+engines:
+  - name: duckduckgo
+    disabled: false
+  - name: wikipedia
+    disabled: false
+  - name: bing
+    disabled: false
+  - name: google
+    disabled: false

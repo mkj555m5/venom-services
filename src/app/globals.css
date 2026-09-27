@@ -1,0 +1,299 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  /* ── Venom palette tokens ── */
+  --color-venom-bg: #0a0a0a;
+  --color-venom-deep: #1d3933;
+  --color-venom-mid: #4e7d7e;
+  --color-venom-light: #6eafa1;
+  --color-venom-bright: #9fd6c9;
+  --color-venom-silver: #e7f1e5;
+  --color-venom-red: #8b0000;
+  --color-venom-metal: #2a2a2a;
+  --color-venom-gold: #d9c07a;
+  --color-venom-amber: #b8a04a;
+  --font-venom-title: "Nosifer", cursive;
+  --font-venom-body: "Rajdhani", sans-serif;
+}
+
+/* ─────────────────────────────────────────────
+   VENOM SERVICES — dark-only theme
+   ───────────────────────────────────────────── */
+:root {
+  --radius: 0.5rem;
+  --background: #0a0a0a;
+  --foreground: #e7f1e5;
+  --card: #161616;
+  --card-foreground: #e7f1e5;
+  --popover: #141414;
+  --popover-foreground: #e7f1e5;
+  --primary: #9fd6c9;
+  --primary-foreground: #0a0a0a;
+  --secondary: #1d3933;
+  --secondary-foreground: #e7f1e5;
+  --muted: #2a2a2a;
+  --muted-foreground: #8fa8a2;
+  --accent: #1d3933;
+  --accent-foreground: #9fd6c9;
+  --destructive: #8b0000;
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+  --ring: #4e7d7e;
+  --chart-1: #9fd6c9;
+  --chart-2: #4e7d7e;
+  --chart-3: #6eafa1;
+  --chart-4: #1d3933;
+  --chart-5: #8b0000;
+  --sidebar: #141414;
+  --sidebar-foreground: #e7f1e5;
+  --sidebar-primary: #9fd6c9;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-accent: #1d3933;
+  --sidebar-accent-foreground: #9fd6c9;
+  --sidebar-border: #2a2a2a;
+  --sidebar-ring: #4e7d7e;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Rajdhani", "Segoe UI", sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.01em;
+  }
+  ::selection {
+    background: #4e7d7e;
+    color: #e7f1e5;
+  }
+}
+
+/* ── scrollbars ── */
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: #0a0a0a; }
+*::-webkit-scrollbar-thumb { background: #1d3933; border-radius: 8px; border: 1px solid #2a2a2a; }
+*::-webkit-scrollbar-thumb:hover { background: #4e7d7e; }
+
+/* ─────────────────────────────────────────────
+   VENOM EFFECTS
+   ───────────────────────────────────────────── */
+
+/* neon green glow around interactive elements on hover */
+.venom-glow {
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+}
+.venom-glow:hover {
+  box-shadow: 0 0 6px 1px rgba(159, 214, 201, 0.35), 0 0 22px 4px rgba(78, 125, 126, 0.25), inset 0 0 8px rgba(159, 214, 201, 0.08);
+  border-color: #9fd6c9;
+}
+.venom-glow:active { transform: scale(0.985); }
+
+.venom-text-glow {
+  text-shadow: 0 0 8px rgba(159, 214, 201, 0.6), 0 0 24px rgba(78, 125, 126, 0.45);
+}
+
+/* liquid tear edges — animated SVG turbulence filter */
+.venom-liquid {
+  filter: url(#venom-liquid-filter);
+}
+.venom-liquid-soft {
+  filter: url(#venom-liquid-soft);
+}
+
+/* liquid title typing flicker */
+.venom-title {
+  font-family: "Nosifer", cursive;
+  color: #9fd6c9;
+  animation: venom-pulse 3.2s ease-in-out infinite;
+}
+@keyframes venom-pulse {
+  0%, 100% { text-shadow: 0 0 6px rgba(159,214,201,.55), 0 0 18px rgba(78,125,126,.35); }
+  50% { text-shadow: 0 0 14px rgba(159,214,201,.9), 0 0 42px rgba(78,125,126,.6); }
+}
+
+/* dripping / morphing entrance */
+.venom-morph-in {
+  animation: venom-morph 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes venom-morph {
+  0% { opacity: 0; transform: scale(0.94) translateY(14px); filter: blur(6px); }
+  60% { filter: blur(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+}
+
+/* stretch effect for search bar while typing */
+.venom-stretch {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, padding 0.15s ease;
+}
+.venom-stretch:focus-within {
+  box-shadow: 0 0 0 1px #9fd6c9, 0 0 18px rgba(159, 214, 201, 0.4);
+  border-color: #9fd6c9;
+}
+
+/* glass inputs */
+.venom-glass {
+  background: rgba(29, 57, 51, 0.18);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(110, 175, 161, 0.35);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.venom-glass:focus-within {
+  border-color: #9fd6c9;
+  box-shadow: 0 0 14px rgba(159, 214, 201, 0.35);
+}
+
+/* liquid skin animated background (SVG turbulence via CSS) */
+.venom-skin {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(29, 57, 51, 0.5), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(78, 125, 126, 0.25), transparent 55%),
+    #0a0a0a;
+  overflow: hidden;
+}
+.venom-skin::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='v'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.006 0.012' numOctaves='3' seed='13'/%3E%3CfeColorMatrix values='0 0 0 0 0.31 0 0 0 0 0.49 0 0 0 0 0.47 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23v)'/%3E%3C/svg%3E");
+  animation: skin-drift 26s linear infinite alternate;
+  pointer-events: none;
+}
+@keyframes skin-drift {
+  0% { transform: translate(-4%, -3%) scale(1.05) rotate(0.5deg); }
+  50% { transform: translate(3%, 2%) scale(1.12) rotate(-0.5deg); }
+  100% { transform: translate(-2%, 4%) scale(1.08) rotate(0.3deg); }
+}
+
+/* service card */
+.venom-card {
+  background: linear-gradient(160deg, #161616 0%, #121212 55%, #101413 100%);
+  border: 1px solid #2a2a2a;
+  border-radius: 0.75rem;
+  position: relative;
+  overflow: hidden;
+}
+.venom-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(159, 214, 201, 0.05) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.9s ease;
+  pointer-events: none;
+}
+.venom-card:hover::after { transform: translateX(120%); }
+
+/* status result cards */
+.venom-result-safe { border-color: #4e7d7e !important; background: linear-gradient(150deg, #10201d, #0d1614); }
+.venom-result-breach { border-color: #8b0000 !important; background: linear-gradient(150deg, #1c0d0d, #140a0a); }
+.venom-result-suspect { border-color: #b8a04a !important; background: linear-gradient(150deg, #1c1a0d, #141208); }
+
+/* chat bubbles */
+.venom-bubble-me {
+  background: linear-gradient(140deg, #1d3933, #16281f);
+  border: 1px solid #4e7d7e;
+  border-radius: 14px 14px 4px 14px;
+}
+.venom-bubble-other {
+  background: linear-gradient(140deg, #1a1a1a, #131313);
+  border: 1px solid #2a2a2a;
+  border-radius: 14px 14px 14px 4px;
+}
+.venom-send-pop { animation: send-pop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
+@keyframes send-pop {
+  0% { transform: scale(0.85) translateY(6px); opacity: 0.4; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* console */
+.venom-console {
+  font-family: "Courier New", monospace;
+  direction: ltr;
+  text-align: left;
+  background: #050807;
+  color: #9fd6c9;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.venom-console .ansi-31 { color: #e05252; }
+.venom-console .ansi-32 { color: #6ee7a0; }
+.venom-console .ansi-33 { color: #d9c07a; }
+.venom-console .ansi-34 { color: #6aa5d8; }
+.venom-console .ansi-36 { color: #4ed4c2; }
+
+/* owner panel accent (slightly different design) */
+.venom-owner {
+  --card: #171010;
+  --border: #3a1f1f;
+}
+.venom-owner .venom-card { background: linear-gradient(160deg, #171010, #120b0b); border-color: #3a1f1f; }
+
+/* skeleton shimmer */
+.venom-skeleton {
+  background: linear-gradient(90deg, #141414 25%, #1e2422 50%, #141414 75%);
+  background-size: 200% 100%;
+  animation: skeleton 1.4s ease infinite;
+}
+@keyframes skeleton {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* typing caret */
+.venom-caret::after {
+  content: "▌";
+  color: #9fd6c9;
+  animation: caret-blink 0.9s steps(1) infinite;
+}
+@keyframes caret-blink { 50% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .venom-skin::before, .venom-title, .venom-morph-in, .venom-skeleton, .venom-caret::after {
+    animation: none !important;
+  }
+}

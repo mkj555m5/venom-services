@@ -1,0 +1,49 @@
+# Venom Services — optional local/full stack with real SearXNG + PostgreSQL + Redis
+# Railway runs the app standalone (see railway.json); this file is for advanced setups.
+version: "3.9"
+
+services:
+  venom-app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: file:/data/venom.db
+      JWT_SECRET: change-me-in-production
+      INTERNAL_TOKEN: venom-internal
+      OWNER_USERNAME: RTQ_67
+      OWNER_PASSWORD: @ROblox2011
+      HOSTING_DATA_DIR: /data/hosting
+      VENOMXNG_URL: http://searxng:8080
+    volumes:
+      - venom-data:/data
+    depends_on:
+      - searxng
+
+  # Optional: real SearXNG behind VenomXNG (set VENOMXNG_URL and it becomes the primary engine)
+  searxng:
+    image: searxng/searxng:latest
+    environment:
+      SEARXNG_BASE_URL: http://searxng:8080/
+      SEARXNG_SECRET: "venom-secret-change-me"
+    # JSON format must be enabled for the API:
+    volumes:
+      - ./services/venomxng/settings.yml:/etc/searxng/settings.yml:ro
+
+  # Optional PostgreSQL (switch prisma datasource provider to "postgresql" first)
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: venom
+      POSTGRES_USER: venom
+      POSTGRES_PASSWORD: venom-secret
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+
+  # Optional Redis (ready for future caching/scaling)
+  redis:
+    image: redis:7-alpine
+
+volumes:
+  venom-data:
+  pg-data:
