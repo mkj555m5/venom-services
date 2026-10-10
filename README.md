@@ -33,13 +33,16 @@
    - Start: **يشغّل كل شيء بأمر واحد** — الخادم الرئيسي + خدمة الاستضافة + خدمة الدردشة (عبر `src/instrumentation.ts` الذي يولد الخدمات المصغرة كأبناء الخادم).
    - Healthcheck: `/health`
 3. أضف **Volume** واربطه على `/data` (لحفظ قاعدة البيانات وملفات مشاريع الاستضافة).
-4. عيّن متغيرات البيئة (انظر الجدول) — ثم Deploy.
+4. **البورت**: أضف متغيراً `PORT` بقيمة مطابقة لـ Target Port في دومين Railway (مثال: إذا رابطك على 8080 → عيّن `PORT=8080`)، أو عيّن Target Port = قيمة `PORT`. إذا لم تعيّن شيئاً يستمع التطبيق على 3000.
+5. عيّن متغيرات البيئة (انظر الجدول) — ثم Deploy.
+
+> 🧠 **قاعدة البيانات تتكيف تلقائياً**: `scripts/db-setup.js` يقرأ `DATABASE_URL` عند البناء والإقلاع — لو كان `postgresql://...` يحوّل الـ schema ويعيد توليد Prisma Client تلقائياً، ولو `file:` أو غائب يستخدم SQLite. لا حاجة لتعديل أي ملف يدوياً.
 
 ### متغيرات البيئة
 
 | المتغير | إلزامي | الافتراضي | الوظيفة |
 |---|---|---|---|
-| `DATABASE_URL` | ✅ | `file:/data/venom.db` | SQLite (أو حوّل الـ provider إلى PostgreSQL في `prisma/schema.prisma` واستخدم `DATABASE_URL` من إضافة Railway) |
+| `DATABASE_URL` | ⬜ | `file:/data/venom.db` | SQLite على Volume، أو ضع رابط PostgreSQL من إضافة Railway — **الـ provider يتبدّل تلقائياً** (يُفضَّل PostgreSQL للإنتاج) |
 | `JWT_SECRET` | ✅ | fallback تطويري | سر توقيع الجلسات — **غيّره في الإنتاج** |
 | `INTERNAL_TOKEN` | ✅ | `venom-internal` | توكن الاتصال الداخلي بين الخدمات |
 | `OWNER_USERNAME` / `OWNER_PASSWORD` | ✅ | `RTQ_67` / `@ROblox2011` | بيانات المالك الثابتة |

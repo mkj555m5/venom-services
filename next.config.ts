@@ -6,6 +6,12 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
+  async rewrites() {
+    return [
+      // Railway healthcheck يتوقع /health — حوّله إلى مسار الـ API الفعلي
+      { source: "/health", destination: "/api/health" },
+    ];
+  },
   async headers() {
     return [
       {
